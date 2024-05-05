@@ -1,3 +1,4 @@
+{% load mathfilters %}
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -17,6 +18,17 @@
     .days-to-expire {
       color: red;
     }
+    .expired-card {
+      border: 2px solid #a80411d2; /* Add a red border to indicate the card is expired */
+    }
+    
+    .expired-message {
+        font-size: 12px;
+        color: red;
+        background-color: #f8d7da; /* Background color for the message */
+        padding: 2px 6px;
+        border-radius: 5px;
+    }
   </style>
 </head>
 <body>
@@ -25,7 +37,7 @@
         <div class="collapse navbar-collapse" id="navbarNav">
           <ul class="navbar-nav ml-auto">
             <li class="nav-item">
-              <span class="nav-link">John Doe</span>
+              <span class="nav-link" style="text-transform: capitalize;">{{request.user}}</span>
             </li>
             <li class="nav-item">
               <button class="btn btn-danger">Logout</button>
@@ -53,39 +65,65 @@
           <div class="tab-pane fade show active" id="pending" role="tabpanel" aria-labelledby="pending-tab">
             <div id="pendingTodos">
               {% for todo in todos %}
-                {% if not todo.is_completed %}
-                  <div class="card mb-2">
-                    <div class="card-body">
-                      <h5 class="card-title">{{todo.title}}</h5>
-                      <p class="card-text">{{todo.desc}}</p>
-                      <p class="card-text">Expire Date: {{todo.date_expire}} <span class="days-to-expire">(days left)</span></p>
-                      <a class="btn btn-primary btn-sm mr-2 editTodo" data-id="{{todo.id}}" href="{% url "todo-update" pk=todo.id %}">Edit</a>
-                      <a class="btn btn-success btn-sm mr-2 completeTodo" data-id="{{todo.id}}" href="{% url "todo-complete" pk=todo.id %}">Complete</a>
-                      <a class="btn btn-danger btn-sm deleteTodo" data-id="{{todo.id}}" href="{% url "todo-delete" pk=todo.id %}">Delete</a>
-                    </div>
-                  </div>
-                {% endif %}
+                {% with date_exp=todo.date_expire %}
+                {% with date_diff=date_exp|sub:today %}
+                  {% if not todo.is_completed and date_diff.days >= 0 %}
+                    <div class="card mb-2">
+                        <div class="card-body">
+                          <h5 class="card-title">{{todo.title}}</h5>
+                          <p class="card-text">{{todo.desc}}</p>
+                          <p class="card-text">Expire Date: {{todo.date_expire}} <span class="days-to-expire">({{date_diff.days}} days left)</span></p>
+                          <a class="btn btn-primary btn-sm mr-2 editTodo" data-id="{{todo.id}}" href="{% url "todo-update" pk=todo.id %}">Edit</a>
+                          <a class="btn btn-success btn-sm mr-2 completeTodo" data-id="{{todo.id}}" href="{% url "todo-complete-toggle" pk=todo.id %}">Complete</a>
+                          <a class="btn btn-danger btn-sm deleteTodo" data-id="{{todo.id}}" href="{% url "todo-delete" pk=todo.id %}">Delete</a>
+                        </div>
+                      </div>
+                  {% endif %}
+                {% endwith %}
+                {% endwith %}
               {% endfor %}
             </div>
           </div>
           <div class="tab-pane fade" id="completed" role="tabpanel" aria-labelledby="completed-tab">
             <div id="completedTodos">
-              {% comment %} <div class="card mb-2">
-                <div class="card-body">
-                  <h5 class="card-title">${todo.title}</h5>
-                  <p class="card-text">${todo.description}</p>
-                  <p class="card-text">Expire Date: ${todo.expireDate} <span class="days-to-expire">(${daysToExpire} days left)</span></p>
-                  ${tabId === 'expired' ? `<button class="btn btn-warning btn-sm changeExpireDate" data-id="${todo.id}">Change Expiry</button>` :
-                    `<button class="btn btn-primary btn-sm mr-2 editTodo" data-id="${todo.id}">Edit</button>
-                    <button class="btn btn-success btn-sm mr-2 completeTodo" data-id="${todo.id}">Complete</button>
-                    <button class="btn btn-danger btn-sm deleteTodo" data-id="${todo.id}">Delete</button>`}
-                </div>
-              </div> {% endcomment %}
+              {% for todo in todos %}
+                {% with date_exp=todo.date_expire %}
+                {% with date_diff=date_exp|sub:today %}
+                  {% if todo.is_completed %}
+                    <div class="card mb-2">
+                        <div class="card-body">
+                          <h5 class="card-title"><strike>{{todo.title}}</strike></h5>
+                          <p class="card-text"><strike>{{todo.desc}}</strike></p>
+                          <a class="btn btn-danger btn-sm mr-2 completeTodo" data-id="{{todo.id}}" href="{% url "todo-complete-toggle" pk=todo.id %}">Incomplete</a>
+                        </div>
+                      </div>
+                  {% endif %}
+                {% endwith %}
+                {% endwith %}
+              {% endfor %}
             </div>
           </div>
           <div class="tab-pane fade" id="expired" role="tabpanel" aria-labelledby="expired-tab">
             <div id="expiredTodos">
-              <!-- Expired todos will be displayed here -->
+              {% for todo in todos %}
+                {% with date_exp=todo.date_expire %}
+                {% with date_diff=date_exp|sub:today %}
+                  {% if not todo.is_completed and date_diff.days < 0 %}
+                    <div class="card mb-2 expired-card">
+                      <div class="card-body">
+                          <div class="d-flex justify-content-between">
+                              <h5 class="card-title"><strike>{{ todo.title }}</strike></h5>
+                              <span class="expired-message">Todo Expired</span>
+                          </div>
+                          <p class="card-text"><strike>{{ todo.desc }}</strike></p>
+                          <a class="btn btn-secondary btn-sm mr-2 editTodo" data-id="{{ todo.id }}" href="{% url "todo-update" pk=todo.id %}">Edit</a>
+                          <a class="btn btn-danger btn-sm deleteTodo" data-id="{{todo.id}}" href="{% url "todo-delete" pk=todo.id %}">Delete</a>
+                      </div>
+                    </div>
+                  {% endif %}
+                {% endwith %}
+                {% endwith %}
+              {% endfor %}
             </div>
           </div>
         </div>
