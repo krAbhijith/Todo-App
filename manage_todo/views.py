@@ -1,7 +1,7 @@
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse_lazy
 from django.views import View
-from django.views.generic import CreateView
+from django.views.generic import RedirectView
 
 from manage_todo.models import Todo
 
@@ -38,6 +38,20 @@ class UpdateTodo(View):
         todo.desc = request.POST.get('desc')
         todo.date_expire = request.POST.get('date_expire')
         todo.priority = request.POST.get('priority')
+        todo.save()
+        return redirect('index')
+    
+class DeleteTodo(View):
+    def get(self, request, *args, **kwargs):
+        pk = kwargs.get('pk')
+        get_object_or_404(Todo, pk=pk).delete()
+        return redirect('index')
+    
+class CompleteTodo(View):
+    def get(self, request, *args, **kwargs):
+        pk = kwargs.get('pk')
+        todo = get_object_or_404(Todo, pk=pk)
+        todo.is_completed = True
         todo.save()
         return redirect('index')
 
